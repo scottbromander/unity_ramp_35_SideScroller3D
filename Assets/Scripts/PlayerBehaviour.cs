@@ -12,6 +12,9 @@ public class PlayerBehaviour : MonoBehaviour {
 
 	private float xMove;
 	private bool shouldJump;
+	private bool onGround;
+	private float yPrevious;
+	private bool collidingWall;
 
 
 	// Use this for initialization
@@ -19,6 +22,9 @@ public class PlayerBehaviour : MonoBehaviour {
 		rigidBody = GetComponent<Rigidbody> ();
 		shouldJump = false;
 		xMove = 0.0f;
+		onGround = false;
+		collidingWall = false;
+		yPrevious = Mathf.Floor (transform.position.y);
 	}
 
 	void FixedUpdate() {
@@ -29,7 +35,18 @@ public class PlayerBehaviour : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
+		CheckGrounded ();
 		Jumping ();
+	}
+
+	void OnCollisionStay(Collision collision){
+		if (!onGround) {
+			collidingWall = true;
+		}
+	}
+
+	void OnCollisionExit(Collision collision){
+		collidingWall = false;
 	}
 
 	void Movement() {
@@ -38,11 +55,21 @@ public class PlayerBehaviour : MonoBehaviour {
 		if (xMove != 0) {
 			float xSpeed = Mathf.Abs (xMove * rigidBody.velocity.x);
 
-			if (xSpeed < maxSpeed) {
-				Vector3 movementForce = new Vector3 (1, 0, 0);
-				movementForce *= xMove * speed;
-				rigidBody.AddForce (movementForce);
+			if (collidingWall && !onGround) {
+				xMove = 0;
 			}
+
+			if (xSpeed < maxSpeed) {
+				Vector3 movementForce = new Vector3(1,0,0);
+				movementForce *= xMove * speed;
+
+				RaycastHit hit;
+				if(!rigidBody.SweepTest(movementForce, out hit, 0.05f))
+				{
+					rigidBody.AddForce(movementForce);
+				}
+			}
+
 
 			if (Mathf.Abs (rigidBody.velocity.x) > maxSpeed) {
 				Vector2 newVelocity;
@@ -57,14 +84,34 @@ public class PlayerBehaviour : MonoBehaviour {
 		}
 	}
 
+	void CheckGrounded(){
+		float distance = (GetComponent<CapsuleCollider> ().height / 2 * this.transform.localScale.y) + 0.01f; 
+		Vector3 floorDirection = transform.TransformDirection (-Vector3.up);
+		Vector3 origin = transform.position;
+
+		if (!onGround) {
+			if (Physics.Raycast (origin, floorDirection, distance)) {
+				onGround = true;
+			}
+		} else if((Mathf.Floor(transform.position.y) != yPrevious)){
+			onGround = false;
+		}
+
+		yPrevious = Mathf.Floor (transform.position.y);
+	}
+
 	void Jumping(){
 		if(Input.GetButtonDown("Jump")){
 			shouldJump = true;
 		}
 
-		if(shouldJump){
+		if(shouldJump && onGround){
 			rigidBody.AddForce(jumpForce);
 			shouldJump = false;
 		}
+	}
+
+	void OnDrawGizmos() {
+		//Debug.DrawLine (transform.position, transform.position + rigidBody.velocity, Color.red);
 	}
 }
