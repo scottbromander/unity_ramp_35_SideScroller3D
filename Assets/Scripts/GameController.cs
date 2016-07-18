@@ -1,11 +1,18 @@
 ﻿using UnityEngine;
 using System.Collections;
+using UnityEngine.UI;
 
 public class GameController : MonoBehaviour {
 
 	public Transform wall;
 	public Transform player;
 	public Transform orb;
+
+	public Text scoreText;
+
+	public static GameController _instance;
+	private int orbsCollected;
+	private int orbsTotal;
 
 	private int[][] level = new int[][]
 	{
@@ -70,13 +77,34 @@ public class GameController : MonoBehaviour {
 		}
 	}
 
+	void Awake(){
+		_instance = this;
+	}
+
 	// Use this for initialization
 	void Start () {
 		BuildLevel ();
+
+		GameObject[] orbs;
+		orbs = GameObject.FindGameObjectsWithTag ("Orb");
+
+		orbsCollected = 0;
+		orbsTotal = orbs.Length;
+
+		UpdateScoreText ();
 	}
 	
 	// Update is called once per frame
 	void Update () {
 	
+	}
+
+	void UpdateScoreText(){
+		scoreText.text = "Orbs: " + orbsCollected + " / " + orbsTotal;
+	}
+
+	public void CollectedOrb(){
+		orbsCollected++;
+		UpdateScoreText ();
 	}
 }
